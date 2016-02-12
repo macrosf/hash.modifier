@@ -113,6 +113,7 @@ public class FileProcesser {
 			}
 		}
 		String newFileName = sb.toString();
+		newFileName = renameSensitiveFile(newFileName);
 		
 		String info = String.format("%s|--Processing file [%s]..."
 				+"(rootPath:[%s]; srcRelativePath:[%s]; "
@@ -127,9 +128,21 @@ public class FileProcesser {
 		
 	}
 
-	private String rename(String srcFileName) {
-		//TODO
-		return "";
+	//重命名带敏感词的文件名
+	private String renameSensitiveFile(String srcFileName) {
+		String destFileName = srcFileName;
+		String[] sensitiveWords = FilterWord.getSensitiveWordList();
+		
+		for (int i=0; i<sensitiveWords.length; i++) {
+			String sensitiveWord = sensitiveWords[i];
+			if (destFileName.contains(sensitiveWord)) {
+				destFileName = destFileName.replace(
+						sensitiveWord, 
+						FilterWord.getJammedWord(sensitiveWord));
+			}
+
+		}
+		return destFileName;
 	}
 	
 	private void appendScramblerBytes(String fullPathName) {
