@@ -5,7 +5,7 @@ import java.util.Map;
 
 public class FilterWord {
 
-	public final static String JAM_CHAR = "|";
+	public final static String JAM_CHAR = "-";
 	
 	private final static String wordsList[] = {
 		"sex", "Sex", "SEX",
@@ -14,7 +14,7 @@ public class FilterWord {
 	
 	private static Map<String, String> sensitiveWords;
 	
-	//构造函数里初始化替换敏感词的map，在敏感词的字母中间插入“|”
+	//构造函数里初始化替换敏感词的map，在敏感词的字母中间插入“-”
 	//private FilterWord() {
 	static {
 		sensitiveWords = new HashMap<String, String>();

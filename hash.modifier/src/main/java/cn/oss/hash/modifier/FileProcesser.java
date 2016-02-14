@@ -1,6 +1,11 @@
 package cn.oss.hash.modifier;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.CharBuffer;
 import java.util.regex.Pattern;
 
@@ -23,16 +28,38 @@ import java.util.regex.Pattern;
 public class FileProcesser {
 
 	public final static String BAK_PATH_APPENDIX = ".bak"+File.separator;
-	public final static String SPLITTER = "|";
 	private String rootPath;
 	private String srcRelativePath="";
+	private String destFullPath="";
 	private int folderLevel=0;
 	//private String destRelativePath;
-	
+		
 	public FileProcesser(String rootPath) {
 		setRootPath(rootPath);
 	}
 
+	public String getDestFullPath() {
+		return destFullPath;
+	}
+
+	public void setDestFullPath(String destFullPath) {
+		this.destFullPath = destFullPath;
+	}
+
+	private void setDestFullPath() {
+		//去除rootPath路径尾部的'\'
+		String trimedRootPath = rootPath.substring(0, rootPath.length()-1);		
+		//设定目标文件夹全路径
+		setDestFullPath(trimedRootPath+BAK_PATH_APPENDIX+srcRelativePath);
+	}
+
+	private void createFolderIfNotExist(String fullPath) {
+		File destSubFolder = new File(fullPath);
+		if (!destSubFolder.exists()) {
+			destSubFolder.mkdirs();
+		}	
+	}
+	
 	public FileProcesser(
 			String rootPath,
 			String srcRelativePath,
@@ -40,6 +67,7 @@ public class FileProcesser {
 		setRootPath(rootPath);
 		setSrcRelativePath(srcRelativePath);
 		setFolderLevel(folderLevel);
+		setDestFullPath();
 	}
 	
 	//处理文件夹（遍历子文件夹，处理子文件）
@@ -48,18 +76,20 @@ public class FileProcesser {
 	 * 处理目标目录为：rootPath + srcRelativePath
 	 * 遇到子文件夹时，修改成员变量srcRelativePath;
 	 * 遇到子文件时，调用processFile
+	 * @throws IOException 
 	 * 
 	 */
-	public void processFolder() {
+	public void processFolder() throws IOException {
 		int spacesLength = folderLevel*4;
+		//为了做成树形的样子，生成指定长度的空格字符串
 		String spaces = CharBuffer.allocate(spacesLength).toString()
 				.replace('\0', ' ');
 			
 		String info = String.format("%s|--Processing folder [%s]..."
-				+"(rootPath:[%s]; srcRelativePath:[%s])\n", 
+				+"(rootPath:[%s]; srcRelativePath:[%s])", 
 				spaces, rootPath+srcRelativePath, rootPath, srcRelativePath);
 		
-		System.out.print(info);
+		System.out.println(info);
 		
 		File dir = new File(rootPath+srcRelativePath);
 		File[] files = dir.listFiles();
@@ -79,6 +109,16 @@ public class FileProcesser {
 						new FileProcesser(
 								rootPath, subRelativePath, folderLevel+1);
 				
+//				//判断当前目录的备份目录是否已经存在，如果不存在，先创建当前目录的备份目录
+//				File destFolder = new File(getDestFullPath());
+//				if (!destFolder.exists()) {
+//					destFolder.mkdir();
+//				}
+				
+				//创建备份目录
+				String destFullPath = subFolderProcesser.getDestFullPath();
+				createFolderIfNotExist(destFullPath);
+				
 				//对子文件夹递归调用处理文件夹的方法
 				subFolderProcesser.processFolder();
 			}
@@ -93,20 +133,20 @@ public class FileProcesser {
 	//处理文件（修改文件名，文件末尾添加扰码）
 	//源文件路径=rootPath + srcRelativePath
 	//目标文件路径=rootPath + BAK_PATH_APPENDIX + srcRelativePath
-	public void processFile(String fileName) {
+	public void processFile(String fileName) throws IOException {
 		int spacesLength = (folderLevel+1)*4;
 		String spaces = CharBuffer.allocate(spacesLength).toString()
 				.replace('\0', ' ');
 		
-		//去除rootPath路径尾部的'\'
-		String trimedRootPath = rootPath.substring(0, rootPath.length()-2);
+//		//去除rootPath路径尾部的'\'
+//		String trimedRootPath = rootPath.substring(0, rootPath.length()-2);
 		
 		//判断文件名中是否含有中文，如果有中文，则每个中文字后面加'|'
 		StringBuffer sb = new StringBuffer();
 		for (int i=0; i<fileName.length(); i++) {
 			String aChar = fileName.substring(i, i+1);
 			if (Pattern.matches("[\u4E00-\u9FA5]", aChar)){
-				sb.append(aChar).append(SPLITTER);
+				sb.append(aChar).append(FilterWord.JAM_CHAR);
 			}
 			else {
 				sb.append(aChar);
@@ -118,14 +158,50 @@ public class FileProcesser {
 		String info = String.format("%s|--Processing file [%s]..."
 				+"(rootPath:[%s]; srcRelativePath:[%s]; "
 				+"destPath:[%s], "
-				+"destFileName:[%s])\n", 
+				+"destFileName:[%s])", 
 				spaces, fileName, 
 				rootPath, srcRelativePath,
-				trimedRootPath+BAK_PATH_APPENDIX+srcRelativePath,
+				getDestFullPath(),
 				newFileName);	
-		System.out.print(info);
+		System.out.println(info);
 		
+		//创建备份目录（如果不存在）
+		createFolderIfNotExist(getDestFullPath());
 		
+		//备份文件
+		File srcFile = new File(rootPath + srcRelativePath + fileName);
+		File destFile = new File(getDestFullPath() + newFileName);
+		if (destFile.exists()) {
+			destFile.delete();
+		}
+		else {
+			destFile.createNewFile();
+		}
+		
+		BufferedInputStream in = null;
+		BufferedOutputStream out = null;
+		try {
+			in = new BufferedInputStream(new FileInputStream(srcFile));
+			out = new BufferedOutputStream(new FileOutputStream(destFile));
+			
+			int len = -1;
+			byte[] b = new byte[1024];
+			while ((len = in.read(b)) != -1) {
+				out.write(b, 0, len);
+			}
+			
+			//目标文件末尾添加1kB的空字符
+			b = new byte[1024];
+			out.write(b);
+		}
+		finally {
+			if (in != null) {
+				in.close();
+			}
+			if (out != null) {
+				out.close();
+			}
+		}
 	}
 
 	//重命名带敏感词的文件名
@@ -143,10 +219,6 @@ public class FileProcesser {
 
 		}
 		return destFileName;
-	}
-	
-	private void appendScramblerBytes(String fullPathName) {
-		
 	}
 	
 	public String getRootPath() {
