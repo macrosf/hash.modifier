@@ -27,7 +27,7 @@ import java.util.regex.Pattern;
  */
 public class FileProcesser {
 
-	public final static String BAK_PATH_APPENDIX = ".bak"+File.separator;
+	public final static String BAK_PATH_APPENDIX = ".hash"+File.separator;
 	private String rootPath;
 	private String srcRelativePath="";
 	private String destFullPath="";
@@ -50,7 +50,11 @@ public class FileProcesser {
 		//去除rootPath路径尾部的'\'
 		String trimedRootPath = rootPath.substring(0, rootPath.length()-1);		
 		//设定目标文件夹全路径
-		setDestFullPath(trimedRootPath+BAK_PATH_APPENDIX+srcRelativePath);
+		String destPath = 
+				trimedRootPath
+				+ BAK_PATH_APPENDIX
+				+ renameFileName(srcRelativePath);
+		setDestFullPath(destPath);
 	}
 
 	private void createFolderIfNotExist(String fullPath) {
@@ -141,19 +145,20 @@ public class FileProcesser {
 //		//去除rootPath路径尾部的'\'
 //		String trimedRootPath = rootPath.substring(0, rootPath.length()-2);
 		
-		//判断文件名中是否含有中文，如果有中文，则每个中文字后面加'|'
-		StringBuffer sb = new StringBuffer();
-		for (int i=0; i<fileName.length(); i++) {
-			String aChar = fileName.substring(i, i+1);
-			if (Pattern.matches("[\u4E00-\u9FA5]", aChar)){
-				sb.append(aChar).append(FilterWord.JAM_CHAR);
-			}
-			else {
-				sb.append(aChar);
-			}
-		}
-		String newFileName = sb.toString();
-		newFileName = renameSensitiveFile(newFileName);
+		//判断文件名中是否含有中文，如果有中文，则每个中文字后面加'-'
+//		StringBuffer sb = new StringBuffer();
+//		for (int i=0; i<fileName.length(); i++) {
+//			String aChar = fileName.substring(i, i+1);
+//			if (Pattern.matches("[\u4E00-\u9FA5]", aChar)){
+//				sb.append(aChar).append(FilterWord.JAM_CHAR);
+//			}
+//			else {
+//				sb.append(aChar);
+//			}
+//		}
+//		String newFileName = sb.toString();
+//		newFileName = renameSensitiveWord(newFileName);
+		String newFileName = renameFileName(fileName);
 		
 		String info = String.format("%s|--Processing file [%s]..."
 				+"(rootPath:[%s]; srcRelativePath:[%s]; "
@@ -204,8 +209,26 @@ public class FileProcesser {
 		}
 	}
 
+	//根据源文件/目录名，生成目标文件/目录名
+	//1.中文名中间添加‘-’符号
+	//2.敏感词字母之间添加‘-’符号
+	private String renameFileName(String srcFileName) {
+		StringBuffer sb = new StringBuffer();
+		for (int i=0; i<srcFileName.length(); i++) {
+			String aChar = srcFileName.substring(i, i+1);
+			if (Pattern.matches("[\u4E00-\u9FA5]", aChar)){
+				sb.append(aChar).append(FilterWord.JAM_CHAR);
+			}
+			else {
+				sb.append(aChar);
+			}
+		}
+		String newFileName = sb.toString();
+		return renameSensitiveWord(newFileName);		
+	}
+	
 	//重命名带敏感词的文件名
-	private String renameSensitiveFile(String srcFileName) {
+	private String renameSensitiveWord(String srcFileName) {
 		String destFileName = srcFileName;
 		String[] sensitiveWords = FilterWord.getSensitiveWordList();
 		

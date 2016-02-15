@@ -12,7 +12,7 @@ public class App
     {
         //System.out.println( "Hello World!" );
     	//String rootPath = "D:\\ToImage\\";
-    	String rootPath = "E:\\Upload\\";
+    	String rootPath = "G:\\03.115_NetDisk\\我的接收\\离线下载.upload\\";
     	FileProcesser processer = new FileProcesser(rootPath);
     	processer.processFolder();
     }
