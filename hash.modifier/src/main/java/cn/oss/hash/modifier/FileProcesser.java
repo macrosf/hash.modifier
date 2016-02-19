@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.nio.CharBuffer;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.StringUtils;
+
 /*
  * TODO
  * 1.当文件夹的名字里面也包含敏感词的时候，添加分隔符
@@ -88,11 +90,13 @@ public class FileProcesser {
 	 * 
 	 */
 	public void processFolder() throws IOException {
-		int spacesLength = folderLevel*4;
 		//为了做成树形的样子，生成指定长度的空格字符串
-		String spaces = CharBuffer.allocate(spacesLength).toString()
-				.replace('\0', ' ');
-			
+//		//实现方式1：使用CharBuffer
+//		int spacesLength = folderLevel*4;
+//		String spaces = CharBuffer.allocate(spacesLength).toString()
+//				.replace('\0', ' ');
+		//实现方式2：使用StringUtils.leftPad
+		String spaces = StringUtils.leftPad(" ", folderLevel*4);
 		String info = String.format("%s|--Processing folder [%s]..."
 				+"(rootPath:[%s]; srcRelativePath:[%s])", 
 				spaces, rootPath+srcRelativePath, rootPath, srcRelativePath);
@@ -119,15 +123,10 @@ public class FileProcesser {
 				FileProcesser subFolderProcesser = 
 						new FileProcesser(
 								rootPath, subRelativePath, folderLevel+1, app);
-				
-//				//判断当前目录的备份目录是否已经存在，如果不存在，先创建当前目录的备份目录
-//				File destFolder = new File(getDestFullPath());
-//				if (!destFolder.exists()) {
-//					destFolder.mkdir();
-//				}
-				
+								
 				//创建备份目录
 				String destFullPath = subFolderProcesser.getDestFullPath();
+				//判断当前目录的备份目录是否已经存在，如果不存在，先创建当前目录的备份目录
 				createFolderIfNotExist(destFullPath);
 				
 				//对子文件夹递归调用处理文件夹的方法
@@ -149,22 +148,7 @@ public class FileProcesser {
 		String spaces = CharBuffer.allocate(spacesLength).toString()
 				.replace('\0', ' ');
 		
-//		//去除rootPath路径尾部的'\'
-//		String trimedRootPath = rootPath.substring(0, rootPath.length()-2);
-		
 		//判断文件名中是否含有中文，如果有中文，则每个中文字后面加'-'
-//		StringBuffer sb = new StringBuffer();
-//		for (int i=0; i<fileName.length(); i++) {
-//			String aChar = fileName.substring(i, i+1);
-//			if (Pattern.matches("[\u4E00-\u9FA5]", aChar)){
-//				sb.append(aChar).append(FilterWord.JAM_CHAR);
-//			}
-//			else {
-//				sb.append(aChar);
-//			}
-//		}
-//		String newFileName = sb.toString();
-//		newFileName = renameSensitiveWord(newFileName);
 		String newFileName = renameFileName(fileName);
 		
 		//处理文件的计数器+1
