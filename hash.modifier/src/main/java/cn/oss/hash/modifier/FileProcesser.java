@@ -29,15 +29,29 @@ public class FileProcesser {
 
 	public final static String BAK_PATH_APPENDIX = ".hash"+File.separator;
 	private String rootPath;
-	private String srcRelativePath="";
-	private String destFullPath="";
-	private int folderLevel=0;
+	private String srcRelativePath = "";
+	private String destFullPath = "";
+	private int folderLevel = 0;
 	//private String destRelativePath;
-		
-	public FileProcesser(String rootPath) {
+	private App app=null;	
+	
+	public FileProcesser(String rootPath, App app) {
 		setRootPath(rootPath);
+		setApp(app);
 	}
 
+	public FileProcesser(
+			String rootPath,
+			String srcRelativePath,
+			int folderLevel,
+			App app) {
+		setRootPath(rootPath);
+		setSrcRelativePath(srcRelativePath);
+		setFolderLevel(folderLevel);
+		setDestFullPath();
+		setApp(app);
+	}	
+	
 	public String getDestFullPath() {
 		return destFullPath;
 	}
@@ -64,16 +78,6 @@ public class FileProcesser {
 		}	
 	}
 	
-	public FileProcesser(
-			String rootPath,
-			String srcRelativePath,
-			int folderLevel) {
-		setRootPath(rootPath);
-		setSrcRelativePath(srcRelativePath);
-		setFolderLevel(folderLevel);
-		setDestFullPath();
-	}
-	
 	//处理文件夹（遍历子文件夹，处理子文件）
 	/**
 	 * 递归函数，处理文件夹（遍历子文件夹，处理子文件）
@@ -95,6 +99,9 @@ public class FileProcesser {
 		
 		System.out.println(info);
 		
+		//处理文件夹的计数器+1
+		app.incFolderProcessed();
+		
 		File dir = new File(rootPath+srcRelativePath);
 		File[] files = dir.listFiles();
 		if (files == null) {
@@ -111,7 +118,7 @@ public class FileProcesser {
 						srcRelativePath + file.getName()+File.separator;
 				FileProcesser subFolderProcesser = 
 						new FileProcesser(
-								rootPath, subRelativePath, folderLevel+1);
+								rootPath, subRelativePath, folderLevel+1, app);
 				
 //				//判断当前目录的备份目录是否已经存在，如果不存在，先创建当前目录的备份目录
 //				File destFolder = new File(getDestFullPath());
@@ -131,7 +138,7 @@ public class FileProcesser {
 				processFile(file.getName());
 			}
 		}
-		
+
 	}
 
 	//处理文件（修改文件名，文件末尾添加扰码）
@@ -159,6 +166,9 @@ public class FileProcesser {
 //		String newFileName = sb.toString();
 //		newFileName = renameSensitiveWord(newFileName);
 		String newFileName = renameFileName(fileName);
+		
+		//处理文件的计数器+1
+		app.incFileProcessed();
 		
 		String info = String.format("%s|--Processing file [%s]..."
 				+"(rootPath:[%s]; srcRelativePath:[%s]; "
@@ -269,6 +279,14 @@ public class FileProcesser {
 
 	public void setFolderLevel(int folderLevel) {
 		this.folderLevel = folderLevel;
+	}
+
+	public App getApp() {
+		return app;
+	}
+
+	public void setApp(App app) {
+		this.app = app;
 	}
 
 	
