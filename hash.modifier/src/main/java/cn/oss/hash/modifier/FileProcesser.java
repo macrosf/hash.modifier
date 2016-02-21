@@ -189,8 +189,9 @@ public class FileProcesser {
 				out.write(b, 0, len);
 			}
 			
-			//目标文件末尾添加1kB的空字符
-			b = new byte[1024];
+			//目标文件末尾添加1kB~2KB的空字符
+			int scramblerLen = (int) Math.round(Math.random()*1024);
+			b = new byte[scramblerLen + 1024];
 			out.write(b);
 		}
 		finally {
